@@ -4,13 +4,26 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000 || 80;
 
 // Middleware
 app.use(cors()); // Allow all origins (important for Arduino)
 app.use(bodyParser.urlencoded({ extended: true })); // For form data
 app.use(bodyParser.json()); // For JSON data
 app.use(express.text()); // For plain text
+app.use((req, res, next) => {
+    // Check if request came through a proxy (like Render's load balancer)
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    
+    // If it's an HTTP request forwarded from the proxy, allow it
+    if (forwardedProto === 'http' || req.protocol === 'http') {
+        // Skip any HTTPS redirect logic
+        return next();
+    }
+    
+    // Otherwise, proceed normally
+    next();
+});
 
 // Store data in memory (for testing)
 let sensorData = [];
