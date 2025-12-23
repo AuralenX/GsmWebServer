@@ -11,17 +11,13 @@ app.use(cors()); // Allow all origins (important for Arduino)
 app.use(bodyParser.urlencoded({ extended: true })); // For form data
 app.use(bodyParser.json()); // For JSON data
 app.use(express.text()); // For plain text
+app.set('trust proxy', true); // Trust the proxy (Render's load balancer)
+// Middleware to handle protocol detection for GSM
 app.use((req, res, next) => {
-    // Check if request came through a proxy (like Render's load balancer)
+    // If it's HTTP or we can't determine, just proceed
     const forwardedProto = req.headers['x-forwarded-proto'];
     
-    // If it's an HTTP request forwarded from the proxy, allow it
-    if (forwardedProto === 'http' || req.protocol === 'http') {
-        // Skip any HTTPS redirect logic
-        return next();
-    }
-    
-    // Otherwise, proceed normally
+    // Always proceed - don't redirect or reject any protocol
     next();
 });
 
@@ -36,7 +32,10 @@ let apiStats = {
 // ==================== API ROUTES ====================
 
 // POST endpoint for Arduino data
-app.post('/api/data', (req, res) => {
+app.post('/api/data', (req, res, next) => {
+    // Skip any security checks for this route
+    next();
+}, (req, res) => {
   apiStats.totalRequests++;
   apiStats.lastRequest = new Date().toISOString();
   
